@@ -1,11 +1,14 @@
 package gotime
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type realtime struct{}
 
 func (realtime) String() string {
-	return "realtime{}"
+	return fmt.Sprintf("realtime{now: %s}", time.Now())
 }
 
 func (realtime) After(d time.Duration) <-chan time.Time {

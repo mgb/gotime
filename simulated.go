@@ -49,16 +49,38 @@ func (s *simulation) fromSimulatedDuration(d time.Duration) time.Duration {
 	return time.Duration(float64(d) / s.ratio)
 }
 
-func (s *simulation) SetNow(t time.Time) {
+func (s *simulation) Add(d time.Duration) time.Time {
 	s.Lock()
 	defer s.Unlock()
 
+	old := s.c.Now()
+	t := old.Add(d)
 	s.start = t
-	s.drift = s.c.Now().Sub(s.start)
+	s.drift = old.Sub(s.start)
 
+	s.triggerTimers(t)
+
+	return old
+
+}
+
+func (s *simulation) SetNow(t time.Time) time.Time {
+	s.Lock()
+	defer s.Unlock()
+
+	old := s.c.Now()
+	s.start = t
+	s.drift = old.Sub(s.start)
+
+	s.triggerTimers(t)
+
+	return old
+}
+
+func (s *simulation) triggerTimers(t time.Time) {
 	// Need to reset timers to the new time
 	if oldestT, ok := s.timers.Peek(); ok {
-		s.makeTimer(s.fromSimulatedDuration(oldestT.Sub(t)))
+		s.makeTimer(oldestT.Sub(t))
 	}
 }
 
@@ -78,7 +100,7 @@ func (s *simulation) SetWarpSpeed(ratio float64) error {
 
 	// Need to reset timers to the new warp speed
 	if oldestT, ok := s.timers.Peek(); ok {
-		s.makeTimer(s.fromSimulatedDuration(oldestT.Sub(now)))
+		s.makeTimer(oldestT.Sub(now))
 	}
 
 	return nil
@@ -96,7 +118,7 @@ func (s *simulation) After(d time.Duration) <-chan time.Time {
 
 	if !ok || oldestT.After(t) {
 		// t is older than any other timer, create a new timer
-		s.makeTimer(s.fromSimulatedDuration(d))
+		s.makeTimer(d)
 	}
 	return ch
 }
@@ -111,7 +133,7 @@ func (s *simulation) makeTimer(d time.Duration) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.timerCancel = cancel
 
-	timer := s.c.Timer(d)
+	timer := s.c.Timer(s.fromSimulatedDuration(d))
 	go func() {
 		defer cancel()
 
@@ -148,7 +170,7 @@ func (s *simulation) makeTimer(d time.Duration) {
 			return
 		}
 
-		s.makeTimer(s.toSimulatedDuration(oldestT.Sub(now)))
+		s.makeTimer(oldestT.Sub(now))
 	}()
 }
 

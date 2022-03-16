@@ -22,12 +22,31 @@ func (f *faketime) String() string {
 	return fmt.Sprintf("fakeTime{now: %s, timers: %s}", f.now, f.timers)
 }
 
-func (f *faketime) SetNow(t time.Time) {
+func (f *faketime) Add(d time.Duration) time.Time {
 	f.Lock()
 	defer f.Unlock()
 
+	old := f.now
+	f.now = f.now.Add(d)
+
+	f.triggerTimers(f.now)
+
+	return old
+}
+
+func (f *faketime) SetNow(t time.Time) time.Time {
+	f.Lock()
+	defer f.Unlock()
+
+	old := f.now
 	f.now = t
 
+	f.triggerTimers(f.now)
+
+	return old
+}
+
+func (f *faketime) triggerTimers(t time.Time) {
 	// Trigger any timer that would pop with the new time
 	for _, c := range f.timers.PopBeforeOrEqual(t) {
 		c <- t

@@ -25,8 +25,10 @@ type Timer interface {
 
 // SettableClock is a Clock that can be set to a specific time
 type SettableClock interface {
-	// SetNow sets the clock to the specified time. Timers will not be adjusted and will immediately trigger if time skips ahead of them.
-	SetNow(t time.Time)
+	// Add will add the duration to the current time, returning the old time.
+	Add(d time.Duration) time.Time
+	// SetNow sets the clock to the specified time, returning the old time. Timers will not be adjusted and will immediately trigger if time skips ahead of them.
+	SetNow(t time.Time) time.Time
 
 	Clock
 }
