@@ -185,7 +185,7 @@ func (s *simulation) Since(t time.Time) time.Duration {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.fromSimulatedDuration(s.Now().Sub(t))
+	return s.fromSimulatedDuration(s.lockedNow().Sub(t))
 }
 
 func (s *simulation) Sleep(d time.Duration) {
