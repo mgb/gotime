@@ -61,7 +61,6 @@ func (s *simulation) Add(d time.Duration) time.Time {
 	s.triggerTimers(t)
 
 	return old
-
 }
 
 func (s *simulation) SetNow(t time.Time) time.Time {
@@ -185,7 +184,7 @@ func (s *simulation) Since(t time.Time) time.Duration {
 	s.RLock()
 	defer s.RUnlock()
 
-	return s.fromSimulatedDuration(s.lockedNow().Sub(t))
+	return s.lockedNow().Sub(t)
 }
 
 func (s *simulation) Sleep(d time.Duration) {

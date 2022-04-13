@@ -443,6 +443,100 @@ func TestSimulatedTime_Now_Warped_real(t *testing.T) {
 	}
 }
 
+func TestSimulatedTime_Since_real(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		warpSpeed         float64
+		sleepTime         time.Duration
+		expectedSleepTime time.Duration
+		epsilon           time.Duration
+	}{
+		{
+			name:              "real time",
+			sleepTime:         time.Second,
+			expectedSleepTime: time.Second,
+			epsilon:           100 * time.Millisecond,
+		},
+		{
+			name:              "60x speed of real time",
+			warpSpeed:         60.0,
+			sleepTime:         time.Minute,
+			expectedSleepTime: time.Second,
+			epsilon:           100 * time.Millisecond,
+		},
+		{
+			name:              "120x speed of real time",
+			warpSpeed:         120.0,
+			sleepTime:         time.Minute,
+			expectedSleepTime: time.Second / 2,
+			epsilon:           time.Second,
+		},
+		{
+			name:              "3600x speed of real time",
+			warpSpeed:         3600.0,
+			sleepTime:         time.Hour,
+			expectedSleepTime: time.Second,
+			epsilon:           time.Minute,
+		},
+		{
+			name:              "1/1000 speed of real time",
+			warpSpeed:         1 / 1000.0,
+			sleepTime:         time.Millisecond,
+			expectedSleepTime: time.Second,
+			epsilon:           100 * time.Millisecond,
+		},
+		{
+			name:              "1/500 speed of real time",
+			warpSpeed:         1 / 500.0,
+			sleepTime:         time.Millisecond,
+			expectedSleepTime: time.Second / 2,
+			epsilon:           100 * time.Millisecond,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sim := NewTimeWarpableClock()
+
+			if tt.warpSpeed != 0 {
+				if err := sim.SetWarpSpeed(tt.warpSpeed); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			realStart := time.Now()
+			start := sim.Now()
+			sim.Sleep(tt.sleepTime)
+			d := sim.Since(start)
+			realD := time.Since(realStart)
+
+			diff := d - tt.sleepTime
+			if diff < 0 {
+				diff = -diff
+			}
+
+			if diff > tt.epsilon {
+				t.Errorf("got %s, want %s", d, tt.sleepTime)
+			}
+
+			diff = time.Duration(int64(realD) - int64(tt.expectedSleepTime))
+			if diff < 0 {
+				diff = -diff
+			}
+
+			if diff > 100*time.Millisecond {
+				t.Errorf("got %s, want %s", d, tt.expectedSleepTime)
+			}
+		})
+	}
+}
+
 func TestSimulatedTime_Sleep_real(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
